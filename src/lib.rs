@@ -12,8 +12,9 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let client = CarbemClient::new()
-//!         .with_azure_from_env()?;
+//!     let client = CarbemClient::builder()
+//!         .with_azure_from_env()?
+//!         .build();
 //!
 //!     let query = EmissionQuery {
 //!         provider: "azure".to_string(),

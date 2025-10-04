@@ -4,7 +4,7 @@ use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionMetadata, EmissionQuery, TimePeriod};
@@ -17,7 +17,7 @@ const AZURE_MANAGEMENT_BASE_URL: &str = "https://management.azure.com";
 const CARBON_API_VERSION: &str = "2025-04-01";
 
 // Configuration for Azure provider
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AzureConfig {
     pub access_token: String,
 }

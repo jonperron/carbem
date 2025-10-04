@@ -1,6 +1,7 @@
 //! Cloud provider modules for carbon emission data retrieval
 
 pub mod azure;
+pub mod registry;
 
 use crate::error::Result;
 use crate::models::{CarbonEmission, EmissionQuery};

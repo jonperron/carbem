@@ -44,13 +44,12 @@ pub async fn get_emissions(
 
 /// Create a configured client from JSON configuration
 fn create_client_from_json(provider: &str, json_config: &str) -> Result<CarbemClient> {
-    let client = CarbemClient::new();
-
     match provider {
         "azure" => {
             let config: AzureConfig =
                 serde_json::from_str(json_config).map_err(|e| CarbemError::Json(e))?;
-            client.with_azure(config)
+            let client = CarbemClient::builder().with_azure(config)?.build();
+            Ok(client)
         }
         _ => Err(CarbemError::UnsupportedProvider(provider.to_string())),
     }
