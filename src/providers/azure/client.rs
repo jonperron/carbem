@@ -4,6 +4,7 @@ use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
 };
+use serde::Deserialize;
 
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionMetadata, EmissionQuery, TimePeriod};
@@ -16,7 +17,7 @@ const AZURE_MANAGEMENT_BASE_URL: &str = "https://management.azure.com";
 const CARBON_API_VERSION: &str = "2025-04-01";
 
 // Configuration for Azure provider
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct AzureConfig {
     pub access_token: String,
 }
@@ -394,6 +395,8 @@ mod tests {
                 start: Utc.with_ymd_and_hms(2024, 3, 1, 0, 0, 0).unwrap(),
                 end: Utc.with_ymd_and_hms(2024, 5, 1, 0, 0, 0).unwrap(),
             },
+            services: None,
+            resources: None,
         }
     }
 
@@ -715,6 +718,8 @@ mod tests {
                     start: Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap(),
                     end: Utc.with_ymd_and_hms(2024, 2, 1, 0, 0, 0).unwrap(),
                 },
+                services: None,
+                resources: None,
             };
 
             let result = provider.get_emissions(&query).await;

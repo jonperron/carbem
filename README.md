@@ -12,6 +12,8 @@ Carbem provides a unified interface for querying carbon emission data from vario
 - ⚡ **Async/await**: Built with modern async Rust for high performance
 - 🔒 **Type-safe**: Leverages Rust's type system for reliable carbon data handling
 - 🚀 **Easy to use**: Simple and intuitive API design
+- 🐍 **FFI Ready**: JSON-based API perfect for Python/TypeScript bindings
+- 🔧 **Flexible Filtering**: Filter by regions, services, and resources
 
 ## Installation
 
@@ -24,7 +26,12 @@ carbem = "0.1.0"
 
 ## Quick Start
 
-### Python FFI Compatible API (Recommended)
+Carbem provides two APIs to suit different use cases:
+
+1. **FFI API**: Simple JSON-based functions perfect for Python/TypeScript bindings
+2. **Rust API**: Type-safe, idiomatic Rust API for native applications
+
+### Python FFI Compatible API (Recommended for Language Bindings)
 
 The library provides a simple 3-parameter function designed for easy Python integration:
 
@@ -35,18 +42,15 @@ use carbem::get_emissions;
 async fn main() -> carbem::Result<()> {
     // JSON configuration for Azure
     let config_json = r#"{
-        "subscription_ids": ["00000000-0000-0000-0000-000000000000"],
-        "access_token": "your_azure_bearer_token_here",
-        "tenant_id": "your_tenant_id_here",
-        "report_type": "monthly"
+        "access_token": "your_azure_bearer_token_here"
     }"#;
     
     // JSON payload for the query
     let payload_json = r#"{
         "start_date": "2024-01-01T00:00:00Z",
         "end_date": "2024-02-01T00:00:00Z",
-        "regions": ["eastus", "westus"],
-        "services": null,
+        "regions": ["subscription-id-1", "subscription-id-2"],
+        "services": ["compute", "storage"],
         "resources": null
     }"#;
     
@@ -65,24 +69,31 @@ async fn main() -> carbem::Result<()> {
 
 ### Standalone Rust API
 
-For standalone Rust applications, use environment variables:
+For standalone Rust applications, use the builder pattern with environment variables:
 
 ```rust
-use carbem::CarbemClient;
+use carbem::{CarbemClient, EmissionQuery, TimePeriod};
+use chrono::{Utc, Duration};
 
 #[tokio::main]
 async fn main() -> carbem::Result<()> {
-    // Automatically loads from .env file and environment variables
-    let client = CarbemClient::from_env()?;
+    // Configure client from environment variables
+    let client = CarbemClient::new()
+        .with_azure_from_env()?;
     
-    // Simple query with sensible defaults
-    let emissions = client.query_emissions(
-        None, // start_date: defaults to 30 days ago
-        None, // end_date: defaults to now  
-        None, // regions: use all available regions
-        None, // services: no filter
-        None, // resources: no filter
-    ).await?;
+    // Create a query
+    let query = EmissionQuery {
+        provider: "azure".to_string(),
+        regions: vec!["subscription-id".to_string()],
+        time_period: TimePeriod {
+            start: Utc::now() - Duration::days(30),
+            end: Utc::now(),
+        },
+        services: Some(vec!["compute".to_string(), "storage".to_string()]),
+        resources: None,
+    };
+    
+    let emissions = client.query_emissions(&query).await?;
     
     for emission in emissions {
         println!("Service: {}, Emissions: {} kg CO2eq", 
@@ -99,6 +110,8 @@ Create a `.env` file in your project root:
 ```env
 # Azure Carbon Emissions Configuration
 CARBEM_AZURE_ACCESS_TOKEN=your_azure_bearer_token_here
+# OR alternatively use:
+# AZURE_TOKEN=your_azure_bearer_token_here
 ```
 
 ## Configuration Parameters
@@ -106,6 +119,19 @@ CARBEM_AZURE_ACCESS_TOKEN=your_azure_bearer_token_here
 ### Environment Variables (for Standalone Rust)
 
 - `CARBEM_AZURE_ACCESS_TOKEN`: Azure access token
+- `AZURE_TOKEN`: Alternative Azure access token variable
+
+### Azure Configuration (AzureConfig)
+
+The Azure provider requires minimal configuration:
+
+```rust
+use carbem::AzureConfig;
+
+let config = AzureConfig {
+    access_token: "your-bearer-token".to_string(),
+};
+```
 
 ### Object-Oriented API (Advanced Usage)
 
@@ -116,25 +142,26 @@ use chrono::{Utc, Duration};
 #[tokio::main]
 async fn main() -> carbem::Result<()> {
     // Create a client and configure Azure provider
-    let mut client = CarbemClient::new();
-    
     let config = AzureConfig {
         access_token: "your-bearer-token".to_string(),
     };
     
-    client.set_azure_provider(config)?;
+    let client = CarbemClient::new()
+        .with_azure(config)?;
     
     // Query carbon emissions for the last 30 days
     let query = EmissionQuery {
         provider: "azure".to_string(),
-        regions: vec![], // Use all available regions
+        regions: vec!["subscription-id".to_string()], // Use your subscription IDs
         time_period: TimePeriod {
             start: Utc::now() - Duration::days(30),
             end: Utc::now(),
         },
+        services: None,
+        resources: None,
     };
     
-    let emissions = client.get_emissions(query).await?;
+    let emissions = client.query_emissions(&query).await?;
     
     for emission in emissions {
         println!("Date: {}, Region: {}, Emissions: {} kg CO2eq", 
@@ -167,9 +194,6 @@ async fn main() -> carbem::Result<()> {
 
 - [x] Core library infrastructure
 - [x] Azure Carbon Emission Reports API integration
-- [x] Python FFI compatible API design
-- [x] Environment-based configuration
-- [ ] Additional Azure report types (TopItems, ItemDetails)
 - [ ] AWS provider implementation
 - [ ] Google Cloud Platform provider
 

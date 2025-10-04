@@ -23,10 +23,6 @@ pub enum CarbemError {
     #[error("Invalid configuration: {0}")]
     Config(String),
 
-    /// Configuration error
-    #[error("Configuration error: {0}")]
-    ConfigError(String),
-
     /// Authentication error
     #[error("Authentication failed: {0}")]
     Auth(String),

@@ -60,4 +60,10 @@ pub struct EmissionQuery {
 
     /// The time period to query
     pub time_period: TimePeriod,
+
+    /// Optional: specific services to filter by
+    pub services: Option<Vec<String>>,
+
+    /// Optional: specific resources to filter by  
+    pub resources: Option<Vec<String>>,
 }

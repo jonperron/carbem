@@ -7,15 +7,6 @@ pub enum SortDirection {
     Desc,
 }
 
-impl SortDirection {
-    fn as_string(&self) -> String {
-        match self {
-            SortDirection::Asc => "Asc".to_string(),
-            SortDirection::Desc => "Desc".to_string(),
-        }
-    }
-}
-
 // Date range for the carbon emission report
 #[derive(Debug, Clone, Serialize)]
 pub struct AzureDateRange {
@@ -33,17 +24,6 @@ pub enum AzureReportType {
     ItemDetails,
 }
 
-impl AzureReportType {
-    fn as_string(&self) -> String {
-        match self {
-            AzureReportType::OverallSummary => "OverallSummary".to_string(),
-            AzureReportType::MonthlySummary => "MonthlySummary".to_string(),
-            AzureReportType::TopItemsSummary => "TopItemsSummary".to_string(),
-            AzureReportType::TopItemsMonthlySummary => "TopItemsMonthlySummary".to_string(),
-            AzureReportType::ItemDetails => "ItemDetails".to_string(),
-        }
-    }
-}
 // Azure Carbon Emission Reports request payload
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
