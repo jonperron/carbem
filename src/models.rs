@@ -50,7 +50,7 @@ pub struct EmissionMetadata {
 }
 
 /// Configuration for querying carbon emissions
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmissionQuery {
     /// The cloud provider to query
     pub provider: String,

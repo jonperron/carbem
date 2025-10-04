@@ -5,12 +5,14 @@ use chrono::{TimeZone, Utc};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Option 1: Configure from environment
-    let client = CarbemClient::new().with_azure_from_env()?;
+    let client = CarbemClient::builder().with_azure_from_env()?.build();
 
     // Option 2: Manual configuration
     // let access_token = env::var("AZURE_TOKEN")?;
     // let config = AzureConfig { access_token };
-    // let client = CarbemClient::new().with_azure(config)?;
+    // let client = CarbemClient::builder()
+    //     .with_azure(config)?
+    //     .build();
 
     let query = EmissionQuery {
         provider: "azure".to_string(),
