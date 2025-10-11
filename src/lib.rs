@@ -60,6 +60,7 @@ pub use client::*;
 pub use error::{CarbemError, Result};
 pub use models::{CarbonEmission, EmissionMetadata, EmissionQuery, TimePeriod};
 pub use providers::azure::{AzureConfig, AzureProvider};
+pub use providers::ibm::{IbmConfig, IbmProvider};
 
 // Export FFI functions for Python/TS bindings
 pub use ffi::get_emissions;
