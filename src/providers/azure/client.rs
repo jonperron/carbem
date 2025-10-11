@@ -98,6 +98,7 @@ impl AzureProvider {
         Ok(headers)
     }
 
+    #[allow(clippy::needless_return)]
     fn build_request_payload(
         &self,
         query: &AzureCarbonEmissionReportRequest,
@@ -263,6 +264,7 @@ impl AzureProvider {
         }
     }
 
+    #[allow(clippy::redundant_closure)]
     async fn request_carbon_emissions(
         &self,
         query: &AzureCarbonEmissionReportRequest,
@@ -282,7 +284,7 @@ impl AzureProvider {
             .json(&payload)
             .send()
             .await
-            .map_err(|e| CarbemError::Http(e))?;
+            .map_err(CarbemError::Http)?;
 
         // Check if request was successful
         if !response.status().is_success() {
@@ -338,7 +340,7 @@ impl AzureProvider {
         for data in azure_response.value {
             for subscription_id in &allowed_subscriptions {
                 let emission =
-                    self.convert_to_carbon_emission(&data, &subscription_id, &query.date_range);
+                    self.convert_to_carbon_emission(&data, subscription_id, &query.date_range);
                 emissions.push(emission);
             }
         }

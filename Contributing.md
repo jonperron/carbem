@@ -80,9 +80,12 @@ cargo test -- --ignored
 ### Rust Guidelines
 
 * Follow standard Rust formatting: `cargo fmt`
+* Pass all Clippy lints: `cargo clippy --all-targets --all-features -- -D warnings`
 * Use meaningful variable and function names
 * Add documentation for public APIs
 * Include examples in documentation when helpful
+
+**Note**: Both `cargo fmt` and `cargo clippy` are enforced in CI and will block pull requests if they fail.
 
 ### Commit Messages
 
