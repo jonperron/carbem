@@ -184,18 +184,21 @@ async fn main() -> carbem::Result<()> {
 - **Region Filtering**: Filter results by specific Azure regions
 - **Comprehensive Testing**: Full test suite ensuring reliability
 
-### Planned Providers
+###  Google Cloud Platform
 
-- [ ] Amazon Web Services (AWS)
-- [ ] Google Cloud Platform (GCP)
-- [ ] Additional providers planned
+Google Cloud Platform is not supported at the moment (October 11th 2025). Data are available only after exporting them to BigQuery as discussed in [this page](https://cloud.google.com/carbon-footprint/docs/api). Thus, one will need to make a query to the BigQuery API, which makes a standard implementation not possible at the moment.
+
+### Amazon Web Services (AWS)
+
+AWS is not supported at the moment (October 11th 2025). Data are available in S3 buckets as discussed in [this page](https://aws.amazon.com/fr/blogs/aws-cloud-financial-management/export-and-visualize-carbon-emissions-data-from-your-aws-accounts/). An endpoint existed but was discontinued on July 23rd 2025 ([ref](https://github.com/aws-samples/experimental-programmatic-access-ccft)).
 
 ## Roadmap
 
 - [x] Core library infrastructure
 - [x] Azure Carbon Emission Reports API integration
-- [ ] AWS provider implementation
-- [ ] Google Cloud Platform provider
+- [ ] Amazon Web Services (AWS)
+- [ ] Google Cloud Platform (GCP)
+- [ ] Additional providers planned
 
 ## Testing
 
@@ -231,4 +234,3 @@ This project is licensed under Apache License, Version 2.0, ([LICENSE-APACHE](LI
 ## Acknowledgments
 
 This project aims to support sustainability efforts in cloud computing by making carbon emission data more accessible to developers and organizations.
-
