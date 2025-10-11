@@ -47,7 +47,7 @@ fn create_client_from_json(provider: &str, json_config: &str) -> Result<CarbemCl
     match provider {
         "azure" => {
             let config: AzureConfig =
-                serde_json::from_str(json_config).map_err(|e| CarbemError::Json(e))?;
+                serde_json::from_str(json_config).map_err(CarbemError::Json)?;
             let client = CarbemClient::builder().with_azure(config)?.build();
             Ok(client)
         }
@@ -58,7 +58,7 @@ fn create_client_from_json(provider: &str, json_config: &str) -> Result<CarbemCl
 /// Parse EmissionQuery from JSON payload
 fn parse_emission_query_from_json(provider: &str, json_payload: &str) -> Result<EmissionQuery> {
     let payload: HashMap<String, serde_json::Value> =
-        serde_json::from_str(json_payload).map_err(|e| CarbemError::Json(e))?;
+        serde_json::from_str(json_payload).map_err(CarbemError::Json)?;
 
     let start_date = match payload.get("start_date") {
         Some(value) => match value.as_str() {

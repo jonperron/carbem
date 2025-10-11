@@ -23,6 +23,7 @@ pub struct Configured;
 
 impl CarbemClientBuilder<Empty> {
     /// Create a new builder
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             registry: ProviderRegistry::new(),
