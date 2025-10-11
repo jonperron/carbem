@@ -300,25 +300,31 @@ impl AzureProvider {
         // Check for access decisions and collect denied subscriptions info
         let mut allowed_subscriptions = Vec::new();
         let mut denied_subscriptions = Vec::new();
-        for decision in &azure_response.subscription_access_decision_list {
-            if decision.decision == "Allowed" {
-                allowed_subscriptions.push(decision.subscription_id.clone());
-                continue;
-            } else {
-                let reason = decision
-                    .denial_reason
-                    .as_ref()
-                    .map(|r| format!(" ({})", r))
-                    .unwrap_or_default();
-                denied_subscriptions.push(format!("{}{}", decision.subscription_id, reason));
+
+        if let Some(access_decisions) = &azure_response.subscription_access_decision_list {
+            for decision in access_decisions {
+                if decision.decision == "Allowed" {
+                    allowed_subscriptions.push(decision.subscription_id.clone());
+                    continue;
+                } else {
+                    let reason = decision
+                        .denial_reason
+                        .as_ref()
+                        .map(|r| format!(" ({})", r))
+                        .unwrap_or_default();
+                    denied_subscriptions.push(format!("{}{}", decision.subscription_id, reason));
+                }
             }
+        } else {
+            // If no access decisions are provided, assume the query is for all allowed subscriptions
+            // We'll use the original subscription list from the query
+            allowed_subscriptions = query.subscription_list.clone();
         }
 
         // Log denied subscriptions but don't fail the entire request if some subscriptions are allowed
         if !denied_subscriptions.is_empty() {
-            // If ALL subscriptions are denied, return an error
-            if denied_subscriptions.len() == azure_response.subscription_access_decision_list.len()
-            {
+            // If ALL requested subscriptions are denied, return an error
+            if allowed_subscriptions.is_empty() {
                 return Err(CarbemError::Auth(format!(
                     "Access denied for all subscriptions: {}",
                     denied_subscriptions.join(", ")
@@ -359,7 +365,7 @@ impl CarbonProvider for AzureProvider {
 
         if query.regions.is_empty() {
             return Err(CarbemError::Config(
-                "At least one subscriptionId must be specified in the query".to_string(),
+                "At least one subscription ID must be specified in the query".to_string(),
             ));
         }
 
@@ -371,6 +377,10 @@ impl CarbonProvider for AzureProvider {
 
     fn is_configured(&self) -> bool {
         !self.config.access_token.is_empty()
+    }
+
+    fn clone_provider(&self) -> Box<dyn CarbonProvider + Send + Sync> {
+        Box::new(self.clone())
     }
 }
 
@@ -628,7 +638,7 @@ mod tests {
         assert!(result
             .unwrap_err()
             .to_string()
-            .contains("At least one subscriptionId must be specified"));
+            .contains("At least one subscription ID must be specified"));
     }
 
     #[test]

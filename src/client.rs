@@ -94,6 +94,14 @@ pub struct CarbemClient {
     providers: Vec<Box<dyn CarbonProvider + Send + Sync>>,
 }
 
+impl Clone for CarbemClient {
+    fn clone(&self) -> Self {
+        Self {
+            providers: self.providers.iter().map(|p| p.clone_provider()).collect(),
+        }
+    }
+}
+
 impl CarbemClient {
     /// Create a new builder
     pub fn builder() -> CarbemClientBuilder<Empty> {

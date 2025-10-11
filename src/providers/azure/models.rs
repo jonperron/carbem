@@ -90,6 +90,7 @@ pub struct AzureEmissionData {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AzureCarbonEmissionReportResponse {
-    pub(super) subscription_access_decision_list: Vec<AzureSubscriptionAccessDecision>,
+    #[serde(default)]
+    pub(super) subscription_access_decision_list: Option<Vec<AzureSubscriptionAccessDecision>>,
     pub(super) value: Vec<AzureEmissionData>,
 }

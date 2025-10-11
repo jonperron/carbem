@@ -9,7 +9,7 @@ use async_trait::async_trait;
 
 /// Trait that all carbon emission providers must implement
 #[async_trait]
-pub trait CarbonProvider {
+pub trait CarbonProvider: Send + Sync {
     /// Get the provider name
     fn name(&self) -> &'static str;
 
@@ -18,4 +18,7 @@ pub trait CarbonProvider {
 
     /// Check if the provider is properly configured
     fn is_configured(&self) -> bool;
+
+    /// Clone the provider (required for CarbemClient cloning)
+    fn clone_provider(&self) -> Box<dyn CarbonProvider + Send + Sync>;
 }
