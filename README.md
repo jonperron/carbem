@@ -178,11 +178,8 @@ async fn main() -> carbem::Result<()> {
 
 ### Microsoft Azure ✅
 
-- **Carbon Emission Reports API**: Integrated with Azure's Carbon Emission Reports API
-- **Multiple Report Types**: Support for Overall Summary and Monthly Summary reports
-- **Flexible Date Ranges**: Query emissions for custom time periods
-- **Region Filtering**: Filter results by specific Azure regions
-- **Comprehensive Testing**: Full test suite ensuring reliability
+- **Report Types**: All report type from [the API](https://learn.microsoft.com/en-us/azure/carbon-optimization/api-export-data?source=recommendations&tabs=OverallSummaryReport#report-types) are supported.
+- **Queries**: All [query parameters](https://learn.microsoft.com/en-us/azure/carbon-optimization/api-export-data?source=recommendations&tabs=OverallSummaryReport#export-emissions-api-parameters) are supported.
 
 ###  Google Cloud Platform
 
