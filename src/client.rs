@@ -3,6 +3,7 @@
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionQuery};
 use crate::providers::azure::AzureConfig;
+use crate::providers::ibm::IbmConfig;
 use crate::providers::registry::ProviderRegistry;
 use crate::providers::CarbonProvider;
 use serde_json::json;
@@ -58,12 +59,58 @@ impl CarbemClientBuilder<Empty> {
         let config = AzureConfig { access_token };
         self.with_azure(config)
     }
+
+    /// Add IBM Cloud provider with explicit config
+    pub fn with_ibm(mut self, config: IbmConfig) -> Result<CarbemClientBuilder<Configured>> {
+        let provider = self.registry.create_provider("ibm", json!(config))?;
+        self.providers.push(provider);
+
+        Ok(CarbemClientBuilder {
+            registry: self.registry,
+            providers: self.providers,
+            _state: PhantomData,
+        })
+    }
+
+    /// Add IBM Cloud provider from environment
+    pub fn with_ibm_from_env(self) -> Result<CarbemClientBuilder<Configured>> {
+        let api_key = std::env::var("IBM_API_KEY")
+            .or_else(|_| std::env::var("CARBEM_IBM_API_KEY"))
+            .map_err(|_| {
+                CarbemError::Config(
+                    "IBM_API_KEY or CARBEM_IBM_API_KEY environment variable not set"
+                        .to_string(),
+                )
+            })?;
+
+        let account_id = std::env::var("IBM_ACCOUNT_ID")
+            .or_else(|_| std::env::var("CARBEM_IBM_ACCOUNT_ID"))
+            .map_err(|_| {
+                CarbemError::Config(
+                    "IBM_ACCOUNT_ID or CARBEM_IBM_ACCOUNT_ID environment variable not set"
+                        .to_string(),
+                )
+            })?;
+
+        let config = IbmConfig {
+            api_key,
+            enterprise_id: account_id, // Using account_id from env as enterprise_id
+        };
+        self.with_ibm(config)
+    }
 }
 
 impl CarbemClientBuilder<Configured> {
     /// Add another Azure provider (for multiple subscriptions)
     pub fn with_azure(mut self, config: AzureConfig) -> Result<Self> {
         let provider = self.registry.create_provider("azure", json!(config))?;
+        self.providers.push(provider);
+        Ok(self)
+    }
+
+    /// Add IBM Cloud provider (for additional accounts)
+    pub fn with_ibm(mut self, config: IbmConfig) -> Result<Self> {
+        let provider = self.registry.create_provider("ibm", json!(config))?;
         self.providers.push(provider);
         Ok(self)
     }
@@ -150,21 +197,36 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_providers() {
-        let config1 = AzureConfig {
-            access_token: "test1".to_string(),
+    fn test_ibm_provider_builder() {
+        let config = IbmConfig {
+            api_key: "test-api-key".to_string(),
+            enterprise_id: "test-enterprise-id".to_string(),
         };
-        let config2 = AzureConfig {
-            access_token: "test2".to_string(),
+
+        let client = CarbemClient::builder().with_ibm(config).unwrap().build();
+
+        assert!(client.has_provider("ibm"));
+    }
+
+    #[test]
+    fn test_multiple_providers() {
+        let azure_config = AzureConfig {
+            access_token: "test-azure".to_string(),
+        };
+        let ibm_config = IbmConfig {
+            api_key: "test-ibm-key".to_string(),
+            enterprise_id: "test-ibm-enterprise".to_string(),
         };
 
         let client = CarbemClient::builder()
-            .with_azure(config1)
+            .with_azure(azure_config)
             .unwrap()
-            .with_azure(config2)
+            .with_ibm(ibm_config)
             .unwrap()
             .build();
 
         assert_eq!(client.available_providers().len(), 2);
+        assert!(client.has_provider("azure"));
+        assert!(client.has_provider("ibm"));
     }
 }
