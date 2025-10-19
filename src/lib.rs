@@ -46,6 +46,8 @@
 //!     Ok(())
 //! }
 //! ```
+use pyo3::prelude::*;
+use pyo3::types::PyModule;
 
 pub mod client;
 pub mod error;
@@ -63,3 +65,38 @@ pub use providers::azure::{AzureConfig, AzureProvider};
 
 // Export FFI functions for Python/TS bindings
 pub use ffi::get_emissions;
+
+/// Get carbon emissions from cloud providers (Python-compatible function)
+#[pyfunction]
+pub fn get_emissions_py(provider: &str, config_json: &str, query_json: &str) -> PyResult<String> {
+    // Use the existing FFI function with runtime block
+    let rt = tokio::runtime::Runtime::new().map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+            "Failed to create runtime: {}",
+            e
+        ))
+    })?;
+
+    match rt.block_on(get_emissions(provider, config_json, query_json)) {
+        Ok(emissions) => {
+            // Convert emissions to JSON string
+            serde_json::to_string(&emissions).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Serialization error: {}",
+                    e
+                ))
+            })
+        }
+        Err(e) => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "{}",
+            e
+        ))),
+    }
+}
+
+/// Python module
+#[pymodule]
+fn carbem(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(get_emissions_py, m)?)?;
+    Ok(())
+}
