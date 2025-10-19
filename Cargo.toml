@@ -20,6 +20,7 @@ thiserror = "2.0.16"
 anyhow = "1.0"
 async-trait = "0.1"
 dotenv = "0.15"
+pyo3 = { version = "0.26", features = ["extension-module"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -27,3 +28,4 @@ tokio-test = "0.4"
 [lib]
 name = "carbem"
 path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]

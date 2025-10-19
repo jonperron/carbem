@@ -26,49 +26,6 @@ carbem = "0.1.0"
 
 ## Quick Start
 
-Carbem provides two APIs to suit different use cases:
-
-1. **FFI API**: Simple JSON-based functions perfect for Python/TypeScript bindings
-2. **Rust API**: Type-safe, idiomatic Rust API for native applications
-
-### Python FFI Compatible API (Recommended for Language Bindings)
-
-The library provides a simple 3-parameter function designed for easy Python integration:
-
-```rust
-use carbem::get_emissions;
-
-#[tokio::main]
-async fn main() -> carbem::Result<()> {
-    // JSON configuration for Azure
-    let config_json = r#"{
-        "access_token": "your_azure_bearer_token_here"
-    }"#;
-    
-    // JSON payload for the query
-    let payload_json = r#"{
-        "start_date": "2024-01-01T00:00:00Z",
-        "end_date": "2024-02-01T00:00:00Z",
-        "regions": ["subscription-id-1", "subscription-id-2"],
-        "services": ["compute", "storage"],
-        "resources": null
-    }"#;
-    
-    // Simple function call - perfect for Python FFI
-    let emissions = get_emissions("azure", config_json, payload_json).await?;
-    
-    for emission in emissions {
-        println!("Service: {}, Emissions: {} kg CO2eq", 
-                 emission.service.unwrap_or_default(),
-                 emission.emissions_kg_co2eq);
-    }
-    
-    Ok(())
-}
-```
-
-### Standalone Rust API
-
 For standalone Rust applications, use the builder pattern with environment variables:
 
 ```rust
