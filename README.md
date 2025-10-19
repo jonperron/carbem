@@ -21,7 +21,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-carbem = "0.1.0"
+carbem = "0.2.0"
 ```
 
 ## Quick Start
