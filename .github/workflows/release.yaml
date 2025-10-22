@@ -1,0 +1,158 @@
+name: Publish Release
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  # Build wheels for multiple platforms
+  build-wheels:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          # Linux
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            platform: linux
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            platform: linux
+          # Windows
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows
+          # macOS
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            platform: macos
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            platform: macos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Build wheels
+        run: maturin build --release --target ${{ matrix.target }} --out dist
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform }}-${{ matrix.target }}
+          path: dist/*.whl
+
+  # Build source distribution
+  build-sdist:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Build sdist
+        run: maturin sdist --out dist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  # Publish to crates.io
+  publish-crates:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish to crates.io
+        run: cargo publish --registry crates-io
+
+  # Publish to PyPI
+  pypi-publish:
+    runs-on: ubuntu-latest
+    needs:
+      - build-wheels
+      - build-sdist
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: List distributions
+        run: ls -la dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  # Publish to TestPyPI (as backup/test)
+  test-pypi-publish:
+    runs-on: ubuntu-latest
+    needs:
+      - build-wheels
+      - build-sdist
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: List distributions
+        run: ls -la dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
