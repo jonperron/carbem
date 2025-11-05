@@ -63,8 +63,6 @@ node_modules/
 *.backup
 *.tmp
 
-# Documentation build
-/docs/
 
 # Test artifacts
 /test-results/

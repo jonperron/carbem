@@ -12,10 +12,12 @@ Carbem provides a unified interface for querying carbon emission data from vario
 - ⚡ **Async/await**: Built with modern async Rust for high performance
 - 🔒 **Type-safe**: Leverages Rust's type system for reliable carbon data handling
 - 🚀 **Easy to use**: Simple and intuitive API design
-- 🐍 **FFI Ready**: JSON-based API perfect for Python/TypeScript bindings
+- 🐍 **Python Bindings**: Native Python integration via PyO3
 - 🔧 **Flexible Filtering**: Filter by regions, services, and resources
 
 ## Installation
+
+### Rust Library
 
 Add this to your `Cargo.toml`:
 
@@ -24,7 +26,24 @@ Add this to your `Cargo.toml`:
 carbem = "0.2.0"
 ```
 
+### Python Package
+
+Install from PyPI:
+
+```bash
+pip install carbem-python
+```
+
+For development setup with maturin:
+
+```bash
+pip install maturin
+maturin develop
+```
+
 ## Quick Start
+
+### Using Rust
 
 For standalone Rust applications, use the builder pattern with environment variables:
 
@@ -62,6 +81,37 @@ async fn main() -> carbem::Result<()> {
 }
 ```
 
+### Using Python
+
+For Python applications, use the `get_emissions_py` function:
+
+```python
+import carbem
+import json
+from datetime import datetime, timedelta
+
+# Azure configuration
+config = json.dumps({
+    "access_token": "your-azure-bearer-token"
+})
+
+# Query for last 30 days
+end_date = datetime.utcnow()
+start_date = end_date - timedelta(days=30)
+
+query = json.dumps({
+    "start_date": start_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "end_date": end_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "regions": ["your-subscription-id"],
+})
+
+# Get emissions data
+result = carbem.get_emissions_py("azure", config, query)
+emissions = json.loads(result)
+
+print(f"Found {len(emissions)} emission records")
+```
+
 Create a `.env` file in your project root:
 
 ```env
@@ -77,6 +127,10 @@ CARBEM_AZURE_ACCESS_TOKEN=your_azure_bearer_token_here
 
 - `CARBEM_AZURE_ACCESS_TOKEN`: Azure access token
 - `AZURE_TOKEN`: Alternative Azure access token variable
+
+### Python Configuration
+
+For Python applications, configuration is passed as JSON strings to the `get_emissions_py` function. See the [Python API Documentation](docs/python_api.md) for detailed configuration examples and usage patterns.
 
 ### Azure Configuration (AzureConfig)
 
@@ -176,6 +230,16 @@ Test coverage includes:
 - Date parsing and time period handling
 - Data conversion from Azure API responses  
 - Error handling for invalid configurations
+
+## Documentation
+
+### Rust Documentation
+
+- API Documentation: Available on [docs.rs](https://docs.rs/carbem/)
+
+### Python Documentation
+
+- [Python API Reference](docs/python_api.md) - Detailed function documentation and usage patterns  
 
 ## Contributing
 
