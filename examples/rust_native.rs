@@ -23,6 +23,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         services: None,
         resources: None,
+        provider_config: Some(serde_json::json!({
+            "report_type": "MonthlySummaryReport",
+            "carbon_scope_list": ["Scope1", "Scope3"]
+        })),
     };
 
     println!("Querying Azure carbon emissions...");

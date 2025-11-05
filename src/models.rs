@@ -66,4 +66,8 @@ pub struct EmissionQuery {
 
     /// Optional: specific resources to filter by  
     pub resources: Option<Vec<String>>,
+
+    /// Optional: provider-specific raw configuration data
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider_config: Option<serde_json::Value>,
 }

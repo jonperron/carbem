@@ -53,14 +53,30 @@ impl AzureProvider {
             end: end_date,
         };
 
-        // Default to MonthlySummaryReport for now - can be made configurable later
-        let report_type = "MonthlySummaryReport".to_string();
+        // Extract report type from provider_config, default to MonthlySummaryReport
+        let report_type = query.provider_config
+            .as_ref()
+            .expect("provider_config should be provided by FFI layer")
+            .get("report_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("MonthlySummaryReport")
+            .to_string();
 
         // Use regions from query as subscription IDs
         let subscription_list = query.regions.clone();
 
-        // Default carbon scopes - can be made configurable later
-        let carbon_scope_list = vec!["Scope1".to_string(), "Scope3".to_string()];
+        // Extract carbon scope list from provider_config, default to Scope1 and Scope3
+        let carbon_scope_list = query.provider_config
+            .as_ref()
+            .expect("provider_config should be provided by FFI layer")
+            .get("carbon_scope_list")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_else(|| vec!["Scope1".to_string(), "Scope3".to_string()]);
 
         Ok(AzureCarbonEmissionReportRequest {
             report_type,
@@ -409,6 +425,7 @@ mod tests {
             },
             services: None,
             resources: None,
+            provider_config: Some(serde_json::json!({})), // Empty config to use defaults
         }
     }
 
@@ -455,6 +472,33 @@ mod tests {
         assert_eq!(azure_request.order_by, None);
         assert_eq!(azure_request.sort_direction, None);
         assert_eq!(azure_request.page_size, None);
+    }
+
+    #[test]
+    fn test_convert_emission_query_with_provider_config() {
+        let provider = create_test_provider();
+        let mut query = create_test_emission_query();
+        
+        // Add provider-specific configuration for ItemDetailsReport (only report_type)
+        let provider_config = serde_json::json!({
+            "report_type": "ItemDetailsReport"
+        });
+        query.provider_config = Some(provider_config);
+
+        let azure_request = provider
+            .convert_emission_query_to_azure_request(&query)
+            .unwrap();
+
+        assert_eq!(azure_request.report_type, "ItemDetailsReport");
+        assert_eq!(azure_request.category_type, None);
+        assert_eq!(azure_request.order_by, None);
+        assert_eq!(azure_request.sort_direction, None);
+        assert_eq!(azure_request.page_size, None);
+        assert_eq!(azure_request.carbon_scope_list, vec!["Scope1", "Scope3"]);
+        assert_eq!(azure_request.location_list, None);
+        assert_eq!(azure_request.resource_group_url_list, None);
+        assert_eq!(azure_request.resource_type_list, None);
+        assert_eq!(azure_request.skip_token, None);
     }
 
     #[test]
@@ -732,6 +776,7 @@ mod tests {
                 },
                 services: None,
                 resources: None,
+                provider_config: Some(serde_json::json!({})), // Empty config to use defaults
             };
 
             let result = provider.get_emissions(&query).await;

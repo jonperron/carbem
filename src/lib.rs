@@ -25,6 +25,9 @@
 //!         },
 //!         services: None,
 //!         resources: None,
+//!         provider_config: Some(serde_json::json!({
+//!             "report_type": "MonthlySummaryReport"
+//!         })),
 //!     };
 //!
 //!     let emissions = client.query_emissions(&query).await?;

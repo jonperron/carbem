@@ -135,6 +135,7 @@ fn parse_emission_query_from_json(provider: &str, json_payload: &str) -> Result<
         regions,
         services,
         resources,
+        provider_config: Some(serde_json::to_value(payload).map_err(CarbemError::Json)?),
     })
 }
 

@@ -16,7 +16,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let payload_json = r#"{
         "start_date": "2024-09-01T00:00:00Z",
         "end_date": "2024-09-30T00:00:00Z",
-        "regions": ["your-subscription-id"]
+        "regions": ["your-subscription-id"],
+        "report_type": "MonthlySummaryReport",
+        "carbon_scope_list": ["Scope1", "Scope3"]
     }"#;
 
     let emissions = get_emissions("azure", &config_json, payload_json).await?;
