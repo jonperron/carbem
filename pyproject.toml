@@ -1,6 +1,6 @@
 [project]
 name = "carbem-python"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python wrapper for the carbem library - retrieve carbon emission data from cloud providers"
 authors = [
     {name = "Jonathan Perron", email = "jonathan@perron.bzh"},
