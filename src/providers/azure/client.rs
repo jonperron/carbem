@@ -4,10 +4,10 @@ use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionMetadata, EmissionQuery, TimePeriod};
+use crate::providers::config::ProviderQueryConfig;
 use crate::providers::CarbonProvider;
 
 use super::models::*;
@@ -15,12 +15,6 @@ use super::models::*;
 // Azure Management API base URL
 const AZURE_MANAGEMENT_BASE_URL: &str = "https://management.azure.com";
 const CARBON_API_VERSION: &str = "2025-04-01";
-
-// Configuration for Azure provider
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct AzureConfig {
-    pub access_token: String,
-}
 
 // Azure Carbon Optimization provider
 #[derive(Debug, Clone)]
@@ -53,14 +47,28 @@ impl AzureProvider {
             end: end_date,
         };
 
-        // Default to MonthlySummaryReport for now - can be made configurable later
-        let report_type = "MonthlySummaryReport".to_string();
+        // Extract Azure config from provider_config or use defaults
+        let azure_config = match &query.provider_config {
+            Some(ProviderQueryConfig::Azure(config)) => config.clone(),
+            _ => AzureQueryConfig::default(),
+        };
+
+        // Extract values with defaults
+        let report_type = azure_config
+            .report_type
+            .unwrap_or_default()
+            .as_str()
+            .to_string();
+
+        let carbon_scope_list = azure_config
+            .carbon_scope_list
+            .unwrap_or_else(|| vec![AzureCarbonScope::Scope1, AzureCarbonScope::Scope3])
+            .iter()
+            .map(|scope| scope.as_str().to_string())
+            .collect();
 
         // Use regions from query as subscription IDs
         let subscription_list = query.regions.clone();
-
-        // Default carbon scopes - can be made configurable later
-        let carbon_scope_list = vec!["Scope1".to_string(), "Scope3".to_string()];
 
         Ok(AzureCarbonEmissionReportRequest {
             report_type,
@@ -409,6 +417,7 @@ mod tests {
             },
             services: None,
             resources: None,
+            provider_config: None, // Use defaults
         }
     }
 
@@ -447,7 +456,10 @@ mod tests {
             azure_request.subscription_list,
             vec!["00000000-0000-0000-0000-000000000000"]
         );
-        assert_eq!(azure_request.carbon_scope_list, vec!["Scope1", "Scope3"]);
+        assert_eq!(
+            azure_request.carbon_scope_list,
+            vec!["Scope1", "Scope2", "Scope3"]
+        );
         assert_eq!(azure_request.date_range.start, "2024-03-01");
         assert_eq!(azure_request.date_range.end, "2024-05-01");
         assert_eq!(azure_request.category_type, None);
@@ -455,6 +467,38 @@ mod tests {
         assert_eq!(azure_request.order_by, None);
         assert_eq!(azure_request.sort_direction, None);
         assert_eq!(azure_request.page_size, None);
+    }
+
+    #[test]
+    fn test_convert_emission_query_with_provider_config() {
+        let provider = create_test_provider();
+        let mut query = create_test_emission_query();
+
+        // Add provider-specific configuration for ItemDetailsReport using type-safe config
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: Some(AzureReportType::ItemDetailsReport),
+            carbon_scope_list: None, // Will use defaults
+            category_type: None,
+            order_by: None,
+            page_size: None,
+            sort_direction: None,
+            top_items: None,
+        }));
+
+        let azure_request = provider
+            .convert_emission_query_to_azure_request(&query)
+            .unwrap();
+
+        assert_eq!(azure_request.report_type, "ItemDetailsReport");
+        assert_eq!(azure_request.category_type, None);
+        assert_eq!(azure_request.order_by, None);
+        assert_eq!(azure_request.sort_direction, None);
+        assert_eq!(azure_request.page_size, None);
+        assert_eq!(azure_request.carbon_scope_list, vec!["Scope1", "Scope3"]);
+        assert_eq!(azure_request.location_list, None);
+        assert_eq!(azure_request.resource_group_url_list, None);
+        assert_eq!(azure_request.resource_type_list, None);
+        assert_eq!(azure_request.skip_token, None);
     }
 
     #[test]
@@ -732,6 +776,7 @@ mod tests {
                 },
                 services: None,
                 resources: None,
+                provider_config: None, // Use defaults
             };
 
             let result = provider.get_emissions(&query).await;

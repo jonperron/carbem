@@ -1,11 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-// Sort direction for ItemDetailsReport
-#[derive(Debug, Clone)]
-pub enum SortDirection {
-    Asc,
-    Desc,
-}
+// ============================================================================
+// Generic structs
+// ============================================================================
 
 // Date range for the carbon emission report
 #[derive(Debug, Clone, Serialize)]
@@ -14,15 +11,136 @@ pub struct AzureDateRange {
     pub end: String,   // Format: "YYYY-MM-DD"
 }
 
-// Report types supported by Azure Carbon API
-#[derive(Debug, Clone)]
+// Azure report types
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "PascalCase")]
 pub enum AzureReportType {
-    OverallSummary,
-    MonthlySummary,
-    TopItemsSummary,
-    TopItemsMonthlySummary,
-    ItemDetails,
+    OverallSummaryReport,
+    #[default]
+    MonthlySummaryReport,
+    TopItemsSummaryReport,
+    TopItemsMonthlySummaryReport,
+    ItemDetailsReport,
 }
+
+impl AzureReportType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AzureReportType::OverallSummaryReport => "OverallSummaryReport",
+            AzureReportType::MonthlySummaryReport => "MonthlySummaryReport",
+            AzureReportType::TopItemsSummaryReport => "TopItemsSummaryReport",
+            AzureReportType::TopItemsMonthlySummaryReport => "TopItemsMonthlySummaryReport",
+            AzureReportType::ItemDetailsReport => "ItemDetailsReport",
+        }
+    }
+}
+
+// Azure carbon scopes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum AzureCarbonScope {
+    Scope1,
+    Scope2,
+    Scope3,
+    Location,
+    Service,
+}
+
+impl AzureCarbonScope {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AzureCarbonScope::Scope1 => "Scope1",
+            AzureCarbonScope::Scope2 => "Scope2",
+            AzureCarbonScope::Scope3 => "Scope3",
+            AzureCarbonScope::Location => "Location",
+            AzureCarbonScope::Service => "Service",
+        }
+    }
+}
+
+// Azure sort direction
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum AzureSortDirection {
+    Asc,
+    Desc,
+}
+
+impl AzureSortDirection {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AzureSortDirection::Asc => "Asc",
+            AzureSortDirection::Desc => "Desc",
+        }
+    }
+}
+
+// ============================================================================
+// Provider Configuration Types
+// ============================================================================
+// Configuration for Azure provider
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AzureConfig {
+    pub access_token: String,
+}
+
+// ============================================================================
+// Query Configuration Types
+// ============================================================================
+
+// Azure query configuration for Carbon Emissions API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AzureQueryConfig {
+    // Report type for Azure Carbon Emissions API
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub report_type: Option<AzureReportType>,
+
+    // Carbon scope list for emissions calculation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub carbon_scope_list: Option<Vec<AzureCarbonScope>>,
+
+    // Category type for certain report types
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category_type: Option<String>,
+
+    // Order by field for ItemDetailsReport
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order_by: Option<String>,
+
+    // Page size for ItemDetailsReport
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_size: Option<i32>,
+
+    // Sort direction for ItemDetailsReport
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort_direction: Option<AzureSortDirection>,
+
+    // Top items count for summary reports
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_items: Option<i32>,
+}
+
+impl Default for AzureQueryConfig {
+    fn default() -> Self {
+        Self {
+            report_type: Some(AzureReportType::default()),
+            carbon_scope_list: Some(vec![
+                AzureCarbonScope::Scope1,
+                AzureCarbonScope::Scope2,
+                AzureCarbonScope::Scope3,
+            ]),
+            category_type: None,
+            order_by: None,
+            page_size: None,
+            sort_direction: None,
+            top_items: None,
+        }
+    }
+}
+
+// ============================================================================
+// Report request and response types
+// ============================================================================
 
 // Azure Carbon Emission Reports request payload
 #[derive(Debug, Clone, Serialize)]
@@ -86,7 +204,7 @@ pub struct AzureEmissionData {
     pub(super) category_type: Option<String>, // For TopItemsSummaryReport, TopItemsMonthlySummaryReport & ItemDetailsReport (e.g., "Location")
 }
 
-/// Azure API response for carbon emission reports
+// Azure API response for carbon emission reports
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AzureCarbonEmissionReportResponse {

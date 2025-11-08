@@ -7,7 +7,8 @@
 //! ## Rust API (Recommended for Rust applications)
 //!
 //! ```rust,no_run
-//! use carbem::{CarbemClient, EmissionQuery, TimePeriod, AzureConfig};
+//! use carbem::{CarbemClient, EmissionQuery, TimePeriod};
+//! use carbem::{ProviderQueryConfig, AzureQueryConfig, AzureReportType};
 //! use chrono::Utc;
 //!
 //! #[tokio::main]
@@ -25,6 +26,10 @@
 //!         },
 //!         services: None,
 //!         resources: None,
+//!         provider_config: Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+//!             report_type: Some(AzureReportType::MonthlySummaryReport),
+//!             ..Default::default()
+//!         })),
 //!     };
 //!
 //!     let emissions = client.query_emissions(&query).await?;
@@ -61,7 +66,11 @@ pub use client::*;
 // Export core types
 pub use error::{CarbemError, Result};
 pub use models::{CarbonEmission, EmissionMetadata, EmissionQuery, TimePeriod};
-pub use providers::azure::{AzureConfig, AzureProvider};
+pub use providers::azure::{
+    AzureCarbonScope, AzureConfig, AzureProvider, AzureQueryConfig, AzureReportType,
+    AzureSortDirection,
+};
+pub use providers::config::ProviderQueryConfig;
 
 // Export FFI functions for Python/TS bindings
 pub use ffi::get_emissions;

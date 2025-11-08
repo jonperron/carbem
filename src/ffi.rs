@@ -12,6 +12,7 @@ use crate::client::CarbemClient;
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionQuery, TimePeriod};
 use crate::providers::azure::AzureConfig;
+use crate::providers::config::ProviderQueryConfig;
 
 /// FFI-friendly function to get emissions using JSON configuration and payload
 ///
@@ -126,6 +127,25 @@ fn parse_emission_query_from_json(provider: &str, json_payload: &str) -> Result<
                 .collect()
         });
 
+    // Parse provider-specific configuration
+    let provider_config = match provider {
+        "azure" => {
+            // Deserialize Azure-specific config from the payload
+            use crate::providers::azure::AzureQueryConfig;
+            let config = serde_json::from_value::<AzureQueryConfig>(
+                serde_json::to_value(&payload).map_err(CarbemError::Json)?,
+            )
+            .map_err(|e| {
+                CarbemError::Config(format!(
+                    "Failed to parse Azure provider configuration: {}.",
+                    e
+                ))
+            })?;
+            Some(ProviderQueryConfig::Azure(config))
+        }
+        _ => None,
+    };
+
     Ok(EmissionQuery {
         provider: provider.to_string(),
         time_period: TimePeriod {
@@ -135,6 +155,7 @@ fn parse_emission_query_from_json(provider: &str, json_payload: &str) -> Result<
         regions,
         services,
         resources,
+        provider_config,
     })
 }
 
