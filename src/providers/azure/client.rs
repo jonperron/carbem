@@ -4,10 +4,10 @@ use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionMetadata, EmissionQuery, TimePeriod};
+use crate::providers::config::ProviderQueryConfig;
 use crate::providers::CarbonProvider;
 
 use super::models::*;
@@ -15,12 +15,6 @@ use super::models::*;
 // Azure Management API base URL
 const AZURE_MANAGEMENT_BASE_URL: &str = "https://management.azure.com";
 const CARBON_API_VERSION: &str = "2025-04-01";
-
-// Configuration for Azure provider
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct AzureConfig {
-    pub access_token: String,
-}
 
 // Azure Carbon Optimization provider
 #[derive(Debug, Clone)]
@@ -53,30 +47,28 @@ impl AzureProvider {
             end: end_date,
         };
 
-        // Extract report type from provider_config, default to MonthlySummaryReport
-        let report_type = query.provider_config
-            .as_ref()
-            .expect("provider_config should be provided by FFI layer")
-            .get("report_type")
-            .and_then(|v| v.as_str())
-            .unwrap_or("MonthlySummaryReport")
+        // Extract Azure config from provider_config or use defaults
+        let azure_config = match &query.provider_config {
+            Some(ProviderQueryConfig::Azure(config)) => config.clone(),
+            _ => AzureQueryConfig::default(),
+        };
+
+        // Extract values with defaults
+        let report_type = azure_config
+            .report_type
+            .unwrap_or_default()
+            .as_str()
             .to_string();
+
+        let carbon_scope_list = azure_config
+            .carbon_scope_list
+            .unwrap_or_else(|| vec![AzureCarbonScope::Scope1, AzureCarbonScope::Scope3])
+            .iter()
+            .map(|scope| scope.as_str().to_string())
+            .collect();
 
         // Use regions from query as subscription IDs
         let subscription_list = query.regions.clone();
-
-        // Extract carbon scope list from provider_config, default to Scope1 and Scope3
-        let carbon_scope_list = query.provider_config
-            .as_ref()
-            .expect("provider_config should be provided by FFI layer")
-            .get("carbon_scope_list")
-            .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-            .unwrap_or_else(|| vec!["Scope1".to_string(), "Scope3".to_string()]);
 
         Ok(AzureCarbonEmissionReportRequest {
             report_type,
@@ -425,7 +417,7 @@ mod tests {
             },
             services: None,
             resources: None,
-            provider_config: Some(serde_json::json!({})), // Empty config to use defaults
+            provider_config: None, // Use defaults
         }
     }
 
@@ -464,7 +456,10 @@ mod tests {
             azure_request.subscription_list,
             vec!["00000000-0000-0000-0000-000000000000"]
         );
-        assert_eq!(azure_request.carbon_scope_list, vec!["Scope1", "Scope3"]);
+        assert_eq!(
+            azure_request.carbon_scope_list,
+            vec!["Scope1", "Scope2", "Scope3"]
+        );
         assert_eq!(azure_request.date_range.start, "2024-03-01");
         assert_eq!(azure_request.date_range.end, "2024-05-01");
         assert_eq!(azure_request.category_type, None);
@@ -478,12 +473,17 @@ mod tests {
     fn test_convert_emission_query_with_provider_config() {
         let provider = create_test_provider();
         let mut query = create_test_emission_query();
-        
-        // Add provider-specific configuration for ItemDetailsReport (only report_type)
-        let provider_config = serde_json::json!({
-            "report_type": "ItemDetailsReport"
-        });
-        query.provider_config = Some(provider_config);
+
+        // Add provider-specific configuration for ItemDetailsReport using type-safe config
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: Some(AzureReportType::ItemDetailsReport),
+            carbon_scope_list: None, // Will use defaults
+            category_type: None,
+            order_by: None,
+            page_size: None,
+            sort_direction: None,
+            top_items: None,
+        }));
 
         let azure_request = provider
             .convert_emission_query_to_azure_request(&query)
@@ -776,7 +776,7 @@ mod tests {
                 },
                 services: None,
                 resources: None,
-                provider_config: Some(serde_json::json!({})), // Empty config to use defaults
+                provider_config: None, // Use defaults
             };
 
             let result = provider.get_emissions(&query).await;

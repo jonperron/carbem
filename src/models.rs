@@ -1,3 +1,4 @@
+use crate::providers::config::ProviderQueryConfig;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -67,7 +68,7 @@ pub struct EmissionQuery {
     /// Optional: specific resources to filter by  
     pub resources: Option<Vec<String>>,
 
-    /// Optional: provider-specific raw configuration data
+    /// Optional: provider-specific configuration (type-safe)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub provider_config: Option<serde_json::Value>,
+    pub provider_config: Option<ProviderQueryConfig>,
 }

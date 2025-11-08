@@ -1,5 +1,6 @@
 use carbem::models::{EmissionQuery, TimePeriod};
 use carbem::CarbemClient;
+use carbem::{AzureCarbonScope, AzureQueryConfig, AzureReportType, ProviderQueryConfig};
 use chrono::{TimeZone, Utc};
 
 #[tokio::main]
@@ -23,9 +24,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         services: None,
         resources: None,
-        provider_config: Some(serde_json::json!({
-            "report_type": "MonthlySummaryReport",
-            "carbon_scope_list": ["Scope1", "Scope3"]
+        // Type-safe configuration for Azure
+        provider_config: Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: Some(AzureReportType::MonthlySummaryReport),
+            carbon_scope_list: Some(vec![AzureCarbonScope::Scope1, AzureCarbonScope::Scope3]),
+            category_type: None,
+            order_by: None,
+            page_size: None,
+            sort_direction: None,
+            top_items: None,
         })),
     };
 
