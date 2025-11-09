@@ -49,7 +49,7 @@ jobs:
         run: pip install maturin
 
       - name: Build wheels
-        run: maturin build --release --target ${{ matrix.target }} --out dist
+        run: maturin build --release --target ${{ matrix.target }} --out dist -i python
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -95,7 +95,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Publish to crates.io
-        run: cargo publish --registry crates-io
+        run: cargo publish
 
   # Publish to PyPI
   pypi-publish:
