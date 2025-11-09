@@ -17,22 +17,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let query = EmissionQuery {
         provider: "azure".to_string(),
-        regions: vec!["your-subscription-id".to_string()], // Replace with your subscription ID
+        regions: vec!["eastus".to_string(), "westus".to_string()], // Location list (regions)
         time_period: TimePeriod {
             start: Utc.with_ymd_and_hms(2024, 9, 1, 0, 0, 0).unwrap(),
             end: Utc.with_ymd_and_hms(2024, 9, 30, 23, 59, 59).unwrap(),
         },
         services: None,
         resources: None,
-        // Type-safe configuration for Azure
+        // Type-safe configuration for Azure (required)
         provider_config: Some(ProviderQueryConfig::Azure(AzureQueryConfig {
-            report_type: Some(AzureReportType::MonthlySummaryReport),
+            report_type: AzureReportType::MonthlySummaryReport,
+            subscription_list: vec!["your-subscription-id".to_string()], // Replace with your subscription ID
             carbon_scope_list: Some(vec![AzureCarbonScope::Scope1, AzureCarbonScope::Scope3]),
             category_type: None,
             order_by: None,
             page_size: None,
             sort_direction: None,
             top_items: None,
+            resource_group_url_list: None,
+            resource_type_list: None,
+            skip_token: None,
         })),
     };
 

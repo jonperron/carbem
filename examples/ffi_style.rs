@@ -16,8 +16,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let payload_json = r#"{
         "start_date": "2024-09-01T00:00:00Z",
         "end_date": "2024-09-30T00:00:00Z",
-        "regions": ["your-subscription-id"],
+        "regions": ["eastus", "westus"],
         "report_type": "MonthlySummaryReport",
+        "subscription_list": ["your-subscription-id"],
         "carbon_scope_list": ["Scope1", "Scope3"]
     }"#;
 

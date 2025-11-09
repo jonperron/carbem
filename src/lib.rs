@@ -19,7 +19,7 @@
 //!
 //!     let query = EmissionQuery {
 //!         provider: "azure".to_string(),
-//!         regions: vec!["subscription-id".to_string()],
+//!         regions: vec!["eastus".to_string(), "westus".to_string()], // location_list
 //!         time_period: TimePeriod {
 //!             start: Utc::now() - chrono::Duration::days(30),
 //!             end: Utc::now(),
@@ -27,7 +27,8 @@
 //!         services: None,
 //!         resources: None,
 //!         provider_config: Some(ProviderQueryConfig::Azure(AzureQueryConfig {
-//!             report_type: Some(AzureReportType::MonthlySummaryReport),
+//!             report_type: AzureReportType::MonthlySummaryReport,
+//!             subscription_list: vec!["subscription-id".to_string()],
 //!             ..Default::default()
 //!         })),
 //!     };

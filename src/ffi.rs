@@ -168,14 +168,16 @@ mod tests {
         let json = r#"{
             "start_date": "2024-01-01T00:00:00Z",
             "end_date": "2024-02-01T00:00:00Z",
-            "regions": ["sub-1", "sub-2"],
-            "services": ["compute", "storage"]
+            "regions": ["eastus", "westus"],
+            "services": ["compute", "storage"],
+            "report_type": "MonthlySummaryReport",
+            "subscription_list": ["sub-1", "sub-2"]
         }"#;
 
         let query = parse_emission_query_from_json("azure", json).unwrap();
 
         assert_eq!(query.provider, "azure");
-        assert_eq!(query.regions, vec!["sub-1", "sub-2"]);
+        assert_eq!(query.regions, vec!["eastus", "westus"]);
         assert_eq!(
             query.services,
             Some(vec!["compute".to_string(), "storage".to_string()])
@@ -189,7 +191,9 @@ mod tests {
         let json_invalid_start = r#"{
             "start_date": "invalid-date",
             "end_date": "2024-02-01T00:00:00Z",
-            "regions": ["sub-1"]
+            "regions": ["eastus"],
+            "report_type": "MonthlySummaryReport",
+            "subscription_list": ["sub-1"]
         }"#;
 
         let result = parse_emission_query_from_json("azure", json_invalid_start);
@@ -203,7 +207,9 @@ mod tests {
         let json_invalid_end = r#"{
             "start_date": "2024-01-01T00:00:00Z",
             "end_date": "not-a-date",
-            "regions": ["sub-1"]
+            "regions": ["eastus"],
+            "report_type": "MonthlySummaryReport",
+            "subscription_list": ["sub-1"]
         }"#;
 
         let result = parse_emission_query_from_json("azure", json_invalid_end);
@@ -215,14 +221,16 @@ mod tests {
 
         // Test missing dates (should be OK - uses defaults)
         let json_no_dates = r#"{
-            "regions": ["sub-1"]
+            "regions": ["eastus"],
+            "report_type": "MonthlySummaryReport",
+            "subscription_list": ["sub-1"]
         }"#;
 
         let result = parse_emission_query_from_json("azure", json_no_dates);
         assert!(result.is_ok());
         // When dates are missing, defaults are used (current time range)
         let query = result.unwrap();
-        assert_eq!(query.regions, vec!["sub-1"]);
+        assert_eq!(query.regions, vec!["eastus"]);
     }
 
     #[tokio::test]

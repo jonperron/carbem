@@ -43,48 +43,72 @@ impl AzureProvider {
         let end_date = query.time_period.end.format("%Y-%m-%d").to_string();
 
         let date_range = AzureDateRange {
-            start: start_date,
-            end: end_date,
+            start: start_date.clone(),
+            end: end_date.clone(),
         };
 
-        // Extract Azure config from provider_config or use defaults
+        // Extract Azure config from provider_config (required - no defaults)
         let azure_config = match &query.provider_config {
             Some(ProviderQueryConfig::Azure(config)) => config.clone(),
-            _ => AzureQueryConfig::default(),
+            None => {
+                return Err(CarbemError::Config(
+                    "provider_config with Azure configuration is required for Azure queries"
+                        .to_string(),
+                ))
+            }
         };
 
-        // Extract values with defaults
-        let report_type = azure_config
-            .report_type
-            .unwrap_or_default()
-            .as_str()
-            .to_string();
+        // Validate the configuration for the specified report type
+        azure_config.validate().map_err(CarbemError::Config)?;
 
-        let carbon_scope_list = azure_config
-            .carbon_scope_list
-            .unwrap_or_else(|| vec![AzureCarbonScope::Scope1, AzureCarbonScope::Scope3])
-            .iter()
-            .map(|scope| scope.as_str().to_string())
-            .collect();
+        // Validate single-month requirement for certain report types
+        let report_type_enum = &azure_config.report_type;
+        if matches!(
+            report_type_enum,
+            AzureReportType::ItemDetailsReport | AzureReportType::TopItemsSummaryReport
+        ) && start_date != end_date
+        {
+            return Err(CarbemError::Config(format!(
+                "{} requires start and end dates to be the same (single month query)",
+                report_type_enum.as_str()
+            )));
+        }
 
-        // Use regions from query as subscription IDs
-        let subscription_list = query.regions.clone();
+        // Extract report type (mandatory field)
+        let report_type = azure_config.report_type.as_str().to_string();
 
         Ok(AzureCarbonEmissionReportRequest {
             report_type,
-            subscription_list,
-            carbon_scope_list,
+            subscription_list: azure_config.subscription_list.clone(),
+            carbon_scope_list: azure_config
+                .carbon_scope_list
+                .unwrap_or_else(|| {
+                    vec![
+                        AzureCarbonScope::Scope1,
+                        AzureCarbonScope::Scope2,
+                        AzureCarbonScope::Scope3,
+                    ]
+                })
+                .iter()
+                .map(|scope| scope.as_str().to_string())
+                .collect(),
             date_range,
-            // Optional fields - set to None for now
-            category_type: None,
-            top_items: None,
-            order_by: None,
-            sort_direction: None,
-            page_size: None,
-            location_list: None,
-            resource_group_url_list: None,
-            resource_type_list: None,
-            skip_token: None,
+            category_type: azure_config.category_type,
+            top_items: azure_config.top_items,
+            order_by: azure_config.order_by,
+            sort_direction: azure_config
+                .sort_direction
+                .as_ref()
+                .map(|sd| sd.as_str().to_string()),
+            page_size: azure_config.page_size,
+            location_list: if !query.regions.is_empty() {
+                Some(query.regions.clone())
+            } else {
+                None
+            },
+            resource_group_url_list: azure_config.resource_group_url_list,
+            resource_type_list: azure_config.resource_type_list,
+            skip_token: azure_config.skip_token,
         })
     }
 
@@ -445,7 +469,13 @@ mod tests {
     #[test]
     fn test_convert_emission_query_to_azure_request() {
         let provider = create_test_provider();
-        let query = create_test_emission_query();
+        let mut query = create_test_emission_query();
+
+        // Provide required Azure configuration with defaults
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
+            ..Default::default()
+        }));
 
         let azure_request = provider
             .convert_emission_query_to_azure_request(&query)
@@ -476,29 +506,231 @@ mod tests {
 
         // Add provider-specific configuration for ItemDetailsReport using type-safe config
         query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
-            report_type: Some(AzureReportType::ItemDetailsReport),
+            report_type: AzureReportType::ItemDetailsReport,
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
             carbon_scope_list: None, // Will use defaults
-            category_type: None,
-            order_by: None,
-            page_size: None,
-            sort_direction: None,
+            category_type: Some("Location".to_string()),
+            order_by: Some("emissions".to_string()),
+            page_size: Some(100),
+            sort_direction: Some(AzureSortDirection::Desc),
             top_items: None,
+            resource_group_url_list: None,
+            resource_type_list: None,
+            skip_token: None,
         }));
+
+        // Need single-month query for ItemDetailsReport
+        query.time_period.end = query.time_period.start;
 
         let azure_request = provider
             .convert_emission_query_to_azure_request(&query)
             .unwrap();
 
         assert_eq!(azure_request.report_type, "ItemDetailsReport");
-        assert_eq!(azure_request.category_type, None);
-        assert_eq!(azure_request.order_by, None);
-        assert_eq!(azure_request.sort_direction, None);
-        assert_eq!(azure_request.page_size, None);
-        assert_eq!(azure_request.carbon_scope_list, vec!["Scope1", "Scope3"]);
-        assert_eq!(azure_request.location_list, None);
+        assert_eq!(azure_request.category_type, Some("Location".to_string()));
+        assert_eq!(azure_request.order_by, Some("emissions".to_string()));
+        assert_eq!(azure_request.sort_direction, Some("Desc".to_string()));
+        assert_eq!(azure_request.page_size, Some(100));
+        assert_eq!(
+            azure_request.carbon_scope_list,
+            vec!["Scope1", "Scope2", "Scope3"]
+        );
+        // location_list is now mapped from query.regions
+        assert_eq!(
+            azure_request.location_list,
+            Some(vec!["00000000-0000-0000-0000-000000000000".to_string()])
+        );
         assert_eq!(azure_request.resource_group_url_list, None);
         assert_eq!(azure_request.resource_type_list, None);
         assert_eq!(azure_request.skip_token, None);
+    }
+
+    #[test]
+    fn test_item_details_report_missing_required_fields() {
+        let provider = create_test_provider();
+        let mut query = create_test_emission_query();
+        query.time_period.end = query.time_period.start; // Single month
+
+        // Missing required fields for ItemDetailsReport
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: AzureReportType::ItemDetailsReport,
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
+            carbon_scope_list: None,
+            category_type: None,  // Missing (required)
+            order_by: None,       // Missing (required)
+            page_size: None,      // Missing (required)
+            sort_direction: None, // Missing (required)
+            top_items: None,
+            resource_group_url_list: None,
+            resource_type_list: None,
+            skip_token: None,
+        }));
+
+        let result = provider.convert_emission_query_to_azure_request(&query);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("category_type is required"));
+    }
+
+    #[test]
+    fn test_item_details_report_multi_month_error() {
+        let provider = create_test_provider();
+        let mut query = create_test_emission_query();
+
+        // Multi-month query (should fail for ItemDetailsReport)
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: AzureReportType::ItemDetailsReport,
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
+            carbon_scope_list: None,
+            category_type: Some("Location".to_string()),
+            order_by: Some("emissions".to_string()),
+            page_size: Some(100),
+            sort_direction: Some(AzureSortDirection::Desc),
+            top_items: None,
+            resource_group_url_list: None,
+            resource_type_list: None,
+            skip_token: None,
+        }));
+
+        let result = provider.convert_emission_query_to_azure_request(&query);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("requires start and end dates to be the same"));
+    }
+
+    #[test]
+    fn test_top_items_summary_report_missing_required_fields() {
+        let provider = create_test_provider();
+        let mut query = create_test_emission_query();
+        query.time_period.end = query.time_period.start; // Single month
+
+        // Missing required fields for TopItemsSummaryReport
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: AzureReportType::TopItemsSummaryReport,
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
+            carbon_scope_list: None,
+            category_type: None, // Missing (required)
+            order_by: None,
+            page_size: None,
+            sort_direction: None,
+            top_items: None, // Missing (required)
+            resource_group_url_list: None,
+            resource_type_list: None,
+            skip_token: None,
+        }));
+
+        let result = provider.convert_emission_query_to_azure_request(&query);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("category_type is required"));
+    }
+
+    #[test]
+    fn test_top_items_monthly_summary_report_with_optional_filters() {
+        let provider = create_test_provider();
+        let mut query = create_test_emission_query();
+
+        // TopItemsMonthlySummaryReport with optional filters
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: AzureReportType::TopItemsMonthlySummaryReport,
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
+            carbon_scope_list: Some(vec![AzureCarbonScope::Scope1]),
+            category_type: Some("Location".to_string()),
+            order_by: None,
+            page_size: None,
+            sort_direction: None,
+            top_items: Some(5),
+            resource_group_url_list: Some(vec![
+                "/subscriptions/sub-id/resourcegroups/rg1".to_string()
+            ]),
+            resource_type_list: Some(vec!["microsoft.compute/virtualmachines".to_string()]),
+            skip_token: None,
+        }));
+
+        let azure_request = provider
+            .convert_emission_query_to_azure_request(&query)
+            .unwrap();
+
+        assert_eq!(azure_request.report_type, "TopItemsMonthlySummaryReport");
+        assert_eq!(azure_request.category_type, Some("Location".to_string()));
+        assert_eq!(azure_request.top_items, Some(5));
+        // location_list should be mapped from query.regions
+        assert_eq!(
+            azure_request.location_list,
+            Some(vec!["00000000-0000-0000-0000-000000000000".to_string()])
+        );
+        assert_eq!(
+            azure_request.resource_group_url_list,
+            Some(vec!["/subscriptions/sub-id/resourcegroups/rg1".to_string()])
+        );
+        assert_eq!(
+            azure_request.resource_type_list,
+            Some(vec!["microsoft.compute/virtualmachines".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_page_size_validation() {
+        let provider = create_test_provider();
+        let mut query = create_test_emission_query();
+        query.time_period.end = query.time_period.start;
+
+        // Invalid page_size (too large)
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: AzureReportType::ItemDetailsReport,
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
+            carbon_scope_list: None,
+            category_type: Some("Location".to_string()),
+            order_by: Some("emissions".to_string()),
+            page_size: Some(6000), // > 5000 (max)
+            sort_direction: Some(AzureSortDirection::Desc),
+            top_items: None,
+            resource_group_url_list: None,
+            resource_type_list: None,
+            skip_token: None,
+        }));
+
+        let result = provider.convert_emission_query_to_azure_request(&query);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("page_size must be between 1 and 5000"));
+    }
+
+    #[test]
+    fn test_top_items_validation() {
+        let provider = create_test_provider();
+        let mut query = create_test_emission_query();
+        query.time_period.end = query.time_period.start;
+
+        // Invalid top_items (too large)
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            report_type: AzureReportType::TopItemsSummaryReport,
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
+            carbon_scope_list: None,
+            category_type: Some("Location".to_string()),
+            order_by: None,
+            page_size: None,
+            sort_direction: None,
+            top_items: Some(20), // > 10 (max)
+            resource_group_url_list: None,
+            resource_type_list: None,
+            skip_token: None,
+        }));
+
+        let result = provider.convert_emission_query_to_azure_request(&query);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("top_items must be between 1 and 10"));
     }
 
     #[test]
@@ -532,9 +764,28 @@ mod tests {
     }
 
     #[test]
+    fn test_missing_provider_config() {
+        let provider = create_test_provider();
+        let query = create_test_emission_query(); // No provider_config
+
+        let result = provider.convert_emission_query_to_azure_request(&query);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("provider_config with Azure configuration is required"));
+    }
+
+    #[test]
     fn test_build_request_payload() {
         let provider = create_test_provider();
-        let query = create_test_emission_query();
+        let mut query = create_test_emission_query();
+
+        // Provide required Azure configuration with defaults
+        query.provider_config = Some(ProviderQueryConfig::Azure(AzureQueryConfig {
+            subscription_list: vec!["00000000-0000-0000-0000-000000000000".to_string()],
+            ..Default::default()
+        }));
 
         let azure_request = provider
             .convert_emission_query_to_azure_request(&query)
