@@ -92,8 +92,7 @@ pub struct AzureConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AzureQueryConfig {
     // Report type for Azure Carbon Emissions API
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub report_type: Option<AzureReportType>,
+    pub report_type: AzureReportType,
 
     // Carbon scope list for emissions calculation
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -118,12 +117,31 @@ pub struct AzureQueryConfig {
     // Top items count for summary reports
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_items: Option<i32>,
+
+    // Mandatory subscription list - different from location_list
+    // Format: List of subscription IDs (e.g., ["sub-id-1", "sub-id-2"])
+    pub subscription_list: Vec<String>,
+
+    // Optional filters - applicable to all report types
+
+    // List of resource group URLs (format: /subscriptions/{subscriptionId}/resourcegroups/{resourceGroup}, lowercase)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_group_url_list: Option<Vec<String>>,
+
+    // List of resource types (format: microsoft.{service}/{resourceType}, lowercase, e.g., "microsoft.storage/storageaccounts")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_type_list: Option<Vec<String>>,
+
+    // Pagination token for ItemDetailsReport (returned in previous response if more pages available)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skip_token: Option<String>,
 }
 
 impl Default for AzureQueryConfig {
     fn default() -> Self {
         Self {
-            report_type: Some(AzureReportType::default()),
+            report_type: AzureReportType::default(),
+            subscription_list: vec![],
             carbon_scope_list: Some(vec![
                 AzureCarbonScope::Scope1,
                 AzureCarbonScope::Scope2,
@@ -134,7 +152,89 @@ impl Default for AzureQueryConfig {
             page_size: None,
             sort_direction: None,
             top_items: None,
+            resource_group_url_list: None,
+            resource_type_list: None,
+            skip_token: None,
         }
+    }
+}
+
+impl AzureQueryConfig {
+    // Validates that all required fields for the specified report type are present
+    pub fn validate(&self) -> Result<(), String> {
+        // Validate mandatory subscription_list
+        if self.subscription_list.is_empty() {
+            return Err("subscription_list is required and cannot be empty".to_string());
+        }
+
+        // report_type is now mandatory (not Option), so it's always present
+        match &self.report_type {
+            AzureReportType::ItemDetailsReport => {
+                // ItemDetailsReport requires: category_type, order_by, page_size, sort_direction
+                if self.category_type.is_none() {
+                    return Err("category_type is required for ItemDetailsReport".to_string());
+                }
+                if self.order_by.is_none() {
+                    return Err("order_by is required for ItemDetailsReport".to_string());
+                }
+                if self.page_size.is_none() {
+                    return Err("page_size is required for ItemDetailsReport".to_string());
+                }
+                // page_size is guaranteed to be Some at this point
+                let page_size = self.page_size.unwrap();
+                if !(1..=5000).contains(&page_size) {
+                    return Err(
+                        "page_size must be between 1 and 5000 for ItemDetailsReport".to_string()
+                    );
+                }
+                if self.sort_direction.is_none() {
+                    return Err("sort_direction is required for ItemDetailsReport".to_string());
+                }
+            }
+            AzureReportType::TopItemsSummaryReport => {
+                // TopItemsSummaryReport requires: category_type, top_items
+                if self.category_type.is_none() {
+                    return Err("category_type is required for TopItemsSummaryReport".to_string());
+                }
+                if self.top_items.is_none() {
+                    return Err("top_items is required for TopItemsSummaryReport".to_string());
+                }
+                // top_items is guaranteed to be Some at this point
+                let top_items = self.top_items.unwrap();
+                if !(1..=10).contains(&top_items) {
+                    return Err(
+                        "top_items must be between 1 and 10 for TopItemsSummaryReport".to_string(),
+                    );
+                }
+            }
+            AzureReportType::TopItemsMonthlySummaryReport => {
+                // TopItemsMonthlySummaryReport requires: category_type, top_items
+                if self.category_type.is_none() {
+                    return Err(
+                        "category_type is required for TopItemsMonthlySummaryReport".to_string()
+                    );
+                }
+                if self.top_items.is_none() {
+                    return Err(
+                        "top_items is required for TopItemsMonthlySummaryReport".to_string()
+                    );
+                }
+                // top_items is guaranteed to be Some at this point
+                let top_items = self.top_items.unwrap();
+                if !(1..=10).contains(&top_items) {
+                    return Err(
+                        "top_items must be between 1 and 10 for TopItemsMonthlySummaryReport"
+                            .to_string(),
+                    );
+                }
+            }
+            _ => {
+                // MonthlySummaryReport, OverallSummaryReport and any future report types
+                // have no additional required fields beyond the common ones
+            }
+        }
+
+        Ok(())
     }
 }
 
