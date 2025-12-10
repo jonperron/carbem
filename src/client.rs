@@ -3,6 +3,7 @@
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionQuery};
 use crate::providers::azure::AzureConfig;
+use crate::providers::ibm::IbmConfig;
 use crate::providers::registry::ProviderRegistry;
 use crate::providers::CarbonProvider;
 use serde_json::json;
@@ -58,12 +59,45 @@ impl CarbemClientBuilder<Empty> {
         let config = AzureConfig { access_token };
         self.with_azure(config)
     }
+
+    /// Add IBM provider with explicit config
+    pub fn with_ibm(mut self, config: IbmConfig) -> Result<CarbemClientBuilder<Configured>> {
+        let provider = self.registry.create_provider("ibm", json!(config))?;
+        self.providers.push(provider);
+
+        Ok(CarbemClientBuilder {
+            registry: self.registry,
+            providers: self.providers,
+            _state: PhantomData,
+        })
+    }
+
+    /// Add IBM provider from environment
+    pub fn with_ibm_from_env(self) -> Result<CarbemClientBuilder<Configured>> {
+        let api_key = std::env::var("IBM_API_KEY")
+            .or_else(|_| std::env::var("CARBEM_IBM_API_KEY"))
+            .map_err(|_| {
+                CarbemError::Config(
+                    "IBM_API_KEY or CARBEM_IBM_API_KEY environment variable not set".to_string(),
+                )
+            })?;
+
+        let config = IbmConfig { api_key };
+        self.with_ibm(config)
+    }
 }
 
 impl CarbemClientBuilder<Configured> {
     /// Add another Azure provider (for multiple subscriptions)
     pub fn with_azure(mut self, config: AzureConfig) -> Result<Self> {
         let provider = self.registry.create_provider("azure", json!(config))?;
+        self.providers.push(provider);
+        Ok(self)
+    }
+
+    /// Add another IBM provider
+    pub fn with_ibm(mut self, config: IbmConfig) -> Result<Self> {
+        let provider = self.registry.create_provider("ibm", json!(config))?;
         self.providers.push(provider);
         Ok(self)
     }

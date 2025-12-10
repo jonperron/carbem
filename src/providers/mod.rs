@@ -2,6 +2,7 @@
 
 pub mod azure;
 pub mod config;
+pub mod ibm;
 pub mod registry;
 
 use crate::error::Result;

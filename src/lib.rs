@@ -72,6 +72,7 @@ pub use providers::azure::{
     AzureSortDirection,
 };
 pub use providers::config::ProviderQueryConfig;
+pub use providers::ibm::{IbmConfig, IbmGroupBy, IbmProvider, IbmQueryConfig};
 
 // Export FFI functions for Python/TS bindings
 pub use ffi::get_emissions;

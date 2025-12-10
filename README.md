@@ -203,7 +203,8 @@ AWS is not supported at the moment (October 11th 2025). Data are available in S3
 ## Roadmap
 
 - [x] Core library infrastructure
-- [x] Azure Carbon Emission Reports API integration
+- [x] Azure Carbon Emission Reports API
+- [x] IBM Cloud Carbon Calculator
 - [ ] Amazon Web Services (AWS)
 - [ ] Google Cloud Platform (GCP)
 - [ ] Additional providers planned
