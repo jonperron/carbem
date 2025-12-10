@@ -1,4 +1,5 @@
 use crate::providers::azure::AzureQueryConfig;
+use crate::providers::ibm::IbmQueryConfig;
 use serde::{Deserialize, Serialize};
 
 /// Provider-specific configuration enum
@@ -8,4 +9,8 @@ pub enum ProviderQueryConfig {
     /// Azure-specific query configuration
     #[serde(rename = "azure")]
     Azure(AzureQueryConfig),
+
+    /// IBM Cloud-specific query configuration
+    #[serde(rename = "ibm")]
+    Ibm(IbmQueryConfig),
 }

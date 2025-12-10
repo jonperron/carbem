@@ -13,6 +13,7 @@ use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionQuery, TimePeriod};
 use crate::providers::azure::AzureConfig;
 use crate::providers::config::ProviderQueryConfig;
+use crate::providers::ibm::IbmConfig;
 
 /// FFI-friendly function to get emissions using JSON configuration and payload
 ///
@@ -50,6 +51,11 @@ fn create_client_from_json(provider: &str, json_config: &str) -> Result<CarbemCl
             let config: AzureConfig =
                 serde_json::from_str(json_config).map_err(CarbemError::Json)?;
             let client = CarbemClient::builder().with_azure(config)?.build();
+            Ok(client)
+        }
+        "ibm" => {
+            let config: IbmConfig = serde_json::from_str(json_config).map_err(CarbemError::Json)?;
+            let client = CarbemClient::builder().with_ibm(config)?.build();
             Ok(client)
         }
         _ => Err(CarbemError::UnsupportedProvider(provider.to_string())),
@@ -142,6 +148,20 @@ fn parse_emission_query_from_json(provider: &str, json_payload: &str) -> Result<
                 ))
             })?;
             Some(ProviderQueryConfig::Azure(config))
+        }
+        "ibm" => {
+            // Deserialize IBM-specific config from the payload
+            use crate::providers::ibm::IbmQueryConfig;
+            let config = serde_json::from_value::<IbmQueryConfig>(
+                serde_json::to_value(&payload).map_err(CarbemError::Json)?,
+            )
+            .map_err(|e| {
+                CarbemError::Config(format!(
+                    "Failed to parse IBM provider configuration: {}.",
+                    e
+                ))
+            })?;
+            Some(ProviderQueryConfig::Ibm(config))
         }
         _ => None,
     };

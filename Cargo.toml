@@ -21,6 +21,7 @@ anyhow = "1.0"
 async-trait = "0.1"
 dotenv = "0.15"
 pyo3 = { version = "0.26", features = ["extension-module"] }
+urlencoding = "2.1"
 
 [dev-dependencies]
 tokio-test = "0.4"

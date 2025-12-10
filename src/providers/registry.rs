@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::error::{CarbemError, Result};
 use crate::providers::azure::{AzureConfig, AzureProvider};
+use crate::providers::ibm::{IbmConfig, IbmProvider};
 use crate::providers::CarbonProvider;
 
 /// Type alias for provider factory functions
@@ -24,6 +25,7 @@ impl ProviderRegistry {
 
         // Register built-in providers
         registry.register_azure();
+        registry.register_ibm();
 
         registry
     }
@@ -39,6 +41,19 @@ impl ProviderRegistry {
         });
 
         self.factories.insert("azure".to_string(), factory);
+    }
+
+    /// Register IBM provider factory
+    fn register_ibm(&mut self) {
+        let factory: ProviderFactory = Box::new(|config_json| {
+            let config: IbmConfig = serde_json::from_value(config_json)
+                .map_err(|e| CarbemError::Config(format!("Invalid IBM config: {}", e)))?;
+
+            let provider = IbmProvider::new(config)?;
+            Ok(Box::new(provider) as Box<dyn CarbonProvider + Send + Sync>)
+        });
+
+        self.factories.insert("ibm".to_string(), factory);
     }
 
     /// Register a custom provider factory
@@ -88,6 +103,7 @@ mod tests {
         let registry = ProviderRegistry::new();
         let providers = registry.available_providers();
         assert!(providers.contains(&"azure".to_string()));
+        assert!(providers.contains(&"ibm".to_string()));
     }
 
     #[test]
@@ -96,6 +112,15 @@ mod tests {
         let config = json!({"access_token": "test-token"});
 
         let result = registry.create_provider("azure", config);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_ibm_provider_creation() {
+        let registry = ProviderRegistry::new();
+        let config = json!({"api_key": "test-api-key"});
+
+        let result = registry.create_provider("ibm", config);
         assert!(result.is_ok());
     }
 

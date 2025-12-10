@@ -50,6 +50,11 @@ impl AzureProvider {
         // Extract Azure config from provider_config (required - no defaults)
         let azure_config = match &query.provider_config {
             Some(ProviderQueryConfig::Azure(config)) => config.clone(),
+            Some(_) => {
+                return Err(CarbemError::Config(
+                    "provider_config must be Azure configuration for Azure provider".to_string(),
+                ))
+            }
             None => {
                 return Err(CarbemError::Config(
                     "provider_config with Azure configuration is required for Azure queries"

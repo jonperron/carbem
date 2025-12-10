@@ -31,6 +31,10 @@ pub enum CarbemError {
     #[error("Rate limit exceeded")]
     RateLimit,
 
+    /// API error (non-HTTP errors from cloud providers)
+    #[error("API error: {0}")]
+    Api(String),
+
     /// Generic error
     #[error("An error occurred: {0}")]
     Other(String),
