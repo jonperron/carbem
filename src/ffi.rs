@@ -218,10 +218,12 @@ mod tests {
 
         let result = parse_emission_query_from_json("azure", json_invalid_start);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid start_date format"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid start_date format")
+        );
 
         // Test invalid end_date
         let json_invalid_end = r#"{
@@ -234,10 +236,12 @@ mod tests {
 
         let result = parse_emission_query_from_json("azure", json_invalid_end);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid end_date format"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid end_date format")
+        );
 
         // Test missing dates (should be OK - uses defaults)
         let json_no_dates = r#"{

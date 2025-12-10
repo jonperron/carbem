@@ -1,5 +1,5 @@
-use carbem::models::{EmissionQuery, TimePeriod};
 use carbem::CarbemClient;
+use carbem::models::{EmissionQuery, TimePeriod};
 use carbem::{AzureCarbonScope, AzureQueryConfig, AzureReportType, ProviderQueryConfig};
 use chrono::{TimeZone, Utc};
 

@@ -2,13 +2,13 @@ use async_trait::async_trait;
 
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionMetadata, EmissionQuery, TimePeriod};
-use crate::providers::config::ProviderQueryConfig;
 use crate::providers::CarbonProvider;
+use crate::providers::config::ProviderQueryConfig;
 
 use chrono::{Datelike, NaiveDate, TimeZone, Utc};
 use reqwest::{
-    header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION},
     Client,
+    header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue},
 };
 
 use super::models::*;
@@ -45,12 +45,12 @@ impl IbmProvider {
             Some(_) => {
                 return Err(CarbemError::Config(
                     "provider_config must be IBM configuration for IBM provider".to_string(),
-                ))
+                ));
             }
             None => {
                 return Err(CarbemError::Config(
                     "provider_config with IBM configuration is required".to_string(),
-                ))
+                ));
             }
         };
 
@@ -434,10 +434,12 @@ mod tests {
 
         let result = provider.convert_emission_query_to_ibm_request(&query);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("provider_config with IBM configuration is required"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("provider_config with IBM configuration is required")
+        );
     }
 
     #[test]
@@ -455,10 +457,12 @@ mod tests {
 
         let result = provider.convert_emission_query_to_ibm_request(&query);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("enterprise_id is required"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("enterprise_id is required")
+        );
     }
 
     #[test]
@@ -473,7 +477,9 @@ mod tests {
         let url = provider.build_endpoint_url(&ibm_request);
 
         // Check URL structure - enterprise_id is now a query param
-        assert!(url.starts_with("https://api.carbon-calculator.cloud.ibm.com/v1/carbon_emissions?"));
+        assert!(
+            url.starts_with("https://api.carbon-calculator.cloud.ibm.com/v1/carbon_emissions?")
+        );
         assert!(url.contains("enterprise_id=x2x261x8x5x84xxxx49x4891xx077xx9"));
         assert!(url.contains("month=gte%3A2023-01"));
         assert!(url.contains("month=lte%3A2023-03"));

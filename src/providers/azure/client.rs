@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use reqwest::{
-    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
+    header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue},
 };
 
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionMetadata, EmissionQuery, TimePeriod};
-use crate::providers::config::ProviderQueryConfig;
 use crate::providers::CarbonProvider;
+use crate::providers::config::ProviderQueryConfig;
 
 use super::models::*;
 
@@ -53,13 +53,13 @@ impl AzureProvider {
             Some(_) => {
                 return Err(CarbemError::Config(
                     "provider_config must be Azure configuration for Azure provider".to_string(),
-                ))
+                ));
             }
             None => {
                 return Err(CarbemError::Config(
                     "provider_config with Azure configuration is required for Azure queries"
                         .to_string(),
-                ))
+                ));
             }
         };
 
@@ -573,10 +573,12 @@ mod tests {
 
         let result = provider.convert_emission_query_to_azure_request(&query);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("category_type is required"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("category_type is required")
+        );
     }
 
     #[test]
@@ -601,10 +603,12 @@ mod tests {
 
         let result = provider.convert_emission_query_to_azure_request(&query);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("requires start and end dates to be the same"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("requires start and end dates to be the same")
+        );
     }
 
     #[test]
@@ -630,10 +634,12 @@ mod tests {
 
         let result = provider.convert_emission_query_to_azure_request(&query);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("category_type is required"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("category_type is required")
+        );
     }
 
     #[test]
@@ -652,7 +658,7 @@ mod tests {
             sort_direction: None,
             top_items: Some(5),
             resource_group_url_list: Some(vec![
-                "/subscriptions/sub-id/resourcegroups/rg1".to_string()
+                "/subscriptions/sub-id/resourcegroups/rg1".to_string(),
             ]),
             resource_type_list: Some(vec!["microsoft.compute/virtualmachines".to_string()]),
             skip_token: None,
@@ -703,10 +709,12 @@ mod tests {
 
         let result = provider.convert_emission_query_to_azure_request(&query);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("page_size must be between 1 and 5000"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("page_size must be between 1 and 5000")
+        );
     }
 
     #[test]
@@ -732,10 +740,12 @@ mod tests {
 
         let result = provider.convert_emission_query_to_azure_request(&query);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("top_items must be between 1 and 10"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("top_items must be between 1 and 10")
+        );
     }
 
     #[test]
@@ -762,10 +772,12 @@ mod tests {
 
         let result = provider.build_headers();
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid access token"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid access token")
+        );
     }
 
     #[test]
@@ -775,10 +787,12 @@ mod tests {
 
         let result = provider.convert_emission_query_to_azure_request(&query);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("provider_config with Azure configuration is required"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("provider_config with Azure configuration is required")
+        );
     }
 
     #[test]
@@ -921,10 +935,12 @@ mod tests {
         let result = rt.block_on(provider.get_emissions(&query));
 
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Query provider must be 'azure'"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Query provider must be 'azure'")
+        );
     }
 
     #[test]
@@ -937,10 +953,12 @@ mod tests {
         let result = rt.block_on(provider.get_emissions(&query));
 
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("At least one subscription ID must be specified"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("At least one subscription ID must be specified")
+        );
     }
 
     #[test]

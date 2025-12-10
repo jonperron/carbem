@@ -2,10 +2,10 @@
 
 use crate::error::{CarbemError, Result};
 use crate::models::{CarbonEmission, EmissionQuery};
+use crate::providers::CarbonProvider;
 use crate::providers::azure::AzureConfig;
 use crate::providers::ibm::IbmConfig;
 use crate::providers::registry::ProviderRegistry;
-use crate::providers::CarbonProvider;
 use serde_json::json;
 use std::marker::PhantomData;
 

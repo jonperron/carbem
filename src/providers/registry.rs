@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 
 use crate::error::{CarbemError, Result};
+use crate::providers::CarbonProvider;
 use crate::providers::azure::{AzureConfig, AzureProvider};
 use crate::providers::ibm::{IbmConfig, IbmProvider};
-use crate::providers::CarbonProvider;
 
 /// Type alias for provider factory functions
 type ProviderFactory =
