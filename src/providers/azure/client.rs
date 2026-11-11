@@ -383,7 +383,7 @@ impl AzureProvider {
         }
 
         // Sort emissions by date if available (newest first)
-        emissions.sort_by(|a, b| b.time_period.start.cmp(&a.time_period.start));
+        emissions.sort_by_key(|a| std::cmp::Reverse(a.time_period.start));
 
         Ok(emissions)
     }
