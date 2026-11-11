@@ -38,7 +38,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -49,7 +49,7 @@ jobs:
         run: pip install maturin
 
       - name: Build wheels
-        run: maturin build --release --target ${{ matrix.target }} --out dist -i python
+        run: maturin build --release --target ${{ matrix.target }} --out dist -i python3.13
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -68,13 +68,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install maturin
         run: pip install maturin
 
       - name: Build sdist
-        run: maturin sdist --out dist
+        run: maturin sdist --out dist -i python3.13
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
@@ -96,6 +96,8 @@ jobs:
 
       - name: Publish to crates.io
         run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   # Publish to PyPI
   pypi-publish:
